@@ -10,6 +10,7 @@ namespace Logic.Services
     {
         IEnumerable<Branch> GetBranches(string projectName);
         Task<IEnumerable<Changeset>> GetChangesetsAsync(string source, string target);
+        Task<Changeset> GetChangesetAsync(int source);
         Task<IEnumerable<string>> GetProjectNamesAsync();
         Task<IEnumerable<Workspace>> AllWorkspacesAsync();
         Workspace CurrentWorkspace();
@@ -73,6 +74,18 @@ namespace Logic.Services
             })
             .OrderByDescending(x => x.CreationDate)
             .ToList();
+        }
+
+        public async Task<Changeset> GetChangesetAsync(int changesetId)
+        {
+            var x = await _tfvcService.GetChangesetAsync(changesetId);
+            return new Changeset
+            {
+                ChangesetId = x.ChangesetId,
+                Comment = x.Comment,
+                CreationDate = x.CreationDate,
+                Owner = x.OwnerDisplayName
+            };
         }
 
         public async Task<IEnumerable<Workspace>> AllWorkspacesAsync()

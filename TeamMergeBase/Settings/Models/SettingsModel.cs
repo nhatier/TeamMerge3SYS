@@ -103,6 +103,11 @@ namespace TeamMergeBase.Settings.Models
                 {
                     CommentFormat = Resources.ChangesetCommentFormat;
                 }
+                else if (_checkInComment == CheckInComment.Standard3SYS)
+                {
+                    CommentFormat = Resources.Changeset3SYSFormat;
+                    CommentLineFormat = Resources.Changeset3SYSLineFormat;
+                }
                 else if (_checkInComment == CheckInComment.MergeDirectionChangesetsDetails)
                 {
                     CommentFormat = Resources.BranchDirectionFormat;

@@ -19,7 +19,7 @@ namespace TeamMergeBase {
     // class via a tool like ResGen or Visual Studio.
     // To add or remove a member, edit your .ResX file then rerun ResGen
     // with the /str option, or rebuild your VS project.
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "15.0.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "17.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     public class Resources {
@@ -75,6 +75,24 @@ namespace TeamMergeBase {
         public static string BranchDirectionFormat {
             get {
                 return ResourceManager.GetString("BranchDirectionFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fusion: .
+        /// </summary>
+        public static string Changeset3SYSFormat {
+            get {
+                return ResourceManager.GetString("Changeset3SYSFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {3}.
+        /// </summary>
+        public static string Changeset3SYSLineFormat {
+            get {
+                return ResourceManager.GetString("Changeset3SYSLineFormat", resourceCulture);
             }
         }
         
@@ -444,6 +462,15 @@ namespace TeamMergeBase {
         public static string SourceBranch {
             get {
                 return ResourceManager.GetString("SourceBranch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Standard 3SYS.
+        /// </summary>
+        public static string Standard3SYSComment {
+            get {
+                return ResourceManager.GetString("Standard3SYSComment", resourceCulture);
             }
         }
         

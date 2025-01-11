@@ -4,6 +4,8 @@ namespace TeamMergeBase.Settings.Enums
 {
     public enum CheckInComment
     {
+        [LocalizedDescription(nameof(Resources.Standard3SYSComment), typeof(Resources))]
+        Standard3SYS,
         [LocalizedDescription(nameof(Resources.None), typeof(Resources))]
         None,
         [LocalizedDescription(nameof(Resources.MergeDirectionComment), typeof(Resources))]

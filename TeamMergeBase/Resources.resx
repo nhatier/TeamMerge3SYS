@@ -213,6 +213,9 @@
   <data name="MergeDirectionComment" xml:space="preserve">
     <value>Merge direction</value>
   </data>
+  <data name="Standard3SYSComment" xml:space="preserve">
+    <value>Standard 3SYS</value>
+  </data>
   <data name="BranchDirectionFormat" xml:space="preserve">
     <value>Merge {0} --&gt; {1}</value>
   </data>
@@ -275,6 +278,12 @@
   </data>
   <data name="ChangesetCommentFormat" xml:space="preserve">
     <value>- {0} | {1} | {2} | {3}</value>
+  </data>
+  <data name="Changeset3SYSFormat" xml:space="preserve">
+    <value>Fusion: </value>
+  </data>
+  <data name="Changeset3SYSLineFormat" xml:space="preserve">
+    <value>{3}</value>
   </data>
   <data name="WorkItemIdsAndChangesetIdsComment" xml:space="preserve">
     <value>Work item ids and changeset ids</value>

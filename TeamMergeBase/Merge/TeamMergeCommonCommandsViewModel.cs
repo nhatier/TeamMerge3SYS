@@ -1,10 +1,12 @@
 ﻿using Domain.Entities;
+using Logic.Helpers;
 using Logic.Services;
 using Shared.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using TeamMergeBase.Base;
 using TeamMergeBase.Commands;
@@ -76,6 +78,8 @@ namespace TeamMergeBase.Merge
                 SourcesBranches.Clear();
                 TargetBranches.Clear();
                 SourcesBranches.AddRange(_currentBranches.Select(x => x.Name));
+
+                SelectedSourceBranch = $"$/{_selectedProjectName}/Principale";
             }
         }
 
@@ -88,10 +92,25 @@ namespace TeamMergeBase.Merge
             {
                 _selectedSourceBranch = value;
                 RaisePropertyChanged(nameof(SelectedSourceBranch));
+                RaisePropertyChanged(nameof(SingleChangesetEnabled));
+
                 InitializeTargetBranches();
 
                 FetchChangesetsCommand.RaiseCanExecuteChanged();
             }
+        }
+
+        String LongestPrefix(String str1, String str2)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < Math.Min(str1.Length, str2.Length) - 1; ++i)
+            {
+                if (char.ToLower(str1[i]) == char.ToLower(str2[i]))
+                    sb.Append(str1[i]);
+                else
+                    break;
+            }
+            return sb.ToString();
         }
 
         public void InitializeTargetBranches()
@@ -100,7 +119,32 @@ namespace TeamMergeBase.Merge
 
             if (SelectedSourceBranch != null)
             {
-                TargetBranches.AddRange(_currentBranches.Single(x => x.Name == SelectedSourceBranch).Branches);
+                var selectedSource = SelectedSourceBranch.Replace("\\", "/");
+                var br = _currentBranches.Select(b =>
+                {
+                    int len = Math.Min(selectedSource.Length, b.Name.Length);
+                    int maxlen = len;
+                    for (int i = 0; i < len; i++)
+                    {
+                        if (b.Name[i] != selectedSource[i])
+                        {
+                            maxlen = i;
+                            break;
+                        }
+                    }
+                    return new { Branch = b, Length = maxlen };
+                }).OrderByDescending(x => x.Length).FirstOrDefault().Branch;
+
+                var lBranchesValides = br.Branches.Where(c => !c.IsEmpty())
+                    .Where(c => !c.Contains("/Principale-OLTP"))
+                    .Where(c => selectedSource.IndexOf("/Principale", StringComparison.InvariantCultureIgnoreCase) > 0 ^ c.Contains("/Principale"))
+                    .OrderByDescending(b => b, new Logic.Helpers.PathWithVersionComparer())
+                    .Select(b => b + selectedSource.Substring(Math.Min(selectedSource.Length, br.Name.Length)))
+                    .Distinct().ToList();
+                ;
+
+                if (br != null)
+                    TargetBranches.AddRange(lBranchesValides);
             }
         }
 
@@ -113,7 +157,7 @@ namespace TeamMergeBase.Merge
             {
                 _selectedTargetBranch = value;
                 RaisePropertyChanged(nameof(SelectedTargetBranch));
-
+                RaisePropertyChanged(nameof(SingleChangesetEnabled));
                 FetchChangesetsCommand.RaiseCanExecuteChanged();
                 SwitchTargetAndSourceBranchesCommand.RaiseCanExecuteChanged();
             }
@@ -128,6 +172,78 @@ namespace TeamMergeBase.Merge
             {
                 _selectedChangeset = value;
                 RaisePropertyChanged(nameof(SelectedChangeset));
+            }
+        }
+
+        CancellationTokenSource c = new CancellationTokenSource();
+
+        private int? _singleChangesetId;
+        public int? SingleChangesetId
+        {
+            get { return _singleChangesetId; }
+            set
+            {
+                _singleChangesetId = value;
+                RaisePropertyChanged(nameof(SingleChangesetId));
+                if (_singleChangesetId == null ^ SingleChangeset == null ||
+                    _singleChangesetId != null && _singleChangesetId.Value != SingleChangeset.ChangesetId)
+                {
+                    SingleChangeset = null;
+
+                    c.Cancel();
+                    if (value.HasValue)
+                    {
+                        c = new CancellationTokenSource();
+#pragma warning disable CS4014
+                        FetchSingleChangeset(value.Value, c);
+#pragma warning restore CS4014
+                    }
+                }
+            }
+        }
+
+        async Task FetchSingleChangeset(int changesetId, CancellationTokenSource c)
+        {
+            await Task.Delay(250, c.Token);
+            if (!c.IsCancellationRequested)
+            {
+                var changeset = await _teamService.GetChangesetAsync(changesetId);
+                SingleChangeset = changeset;
+            }
+        }
+
+        private Changeset _singleChangeset;
+        public Changeset SingleChangeset
+        {
+            get { return _singleChangeset; }
+            set
+            {
+                _singleChangeset = value;
+                RaisePropertyChanged(nameof(SingleChangeset));
+                RaisePropertyChanged(nameof(SingleChangesetText));
+                RaisePropertyChanged(nameof(SingleChangesetEnabled));
+                MergeCommand.RaiseCanExecuteChanged();
+            }
+        }
+
+        public string SingleChangesetText
+        {
+            get { return _singleChangeset?.Comment; }
+/*            set
+            {
+                RaisePropertyChanged(nameof(SingleChangesetText));
+            }*/
+        }
+
+        public bool SingleChangesetEnabled
+        {
+            get
+            {
+                return CanFetchChangesets() && SelectedChangesets.Count <= 1;
+            }
+            set
+            {
+                RaisePropertyChanged(nameof(SingleChangesetEnabled));
             }
         }
 
@@ -150,6 +266,16 @@ namespace TeamMergeBase.Merge
 
         private void SelectedChangesets_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
+            var first = SelectedChangesets.FirstOrDefault();
+            if (first != null)
+            {
+                if (SelectedChangesets.Skip(1).Any())
+                    SingleChangeset = null;
+                else
+                    SingleChangeset = first;
+
+            }
+
             MergeCommand.RaiseCanExecuteChanged();
         }
 
@@ -205,7 +331,12 @@ namespace TeamMergeBase.Merge
         {
             await _setBusyWhileExecutingAsync(async () =>
             {
-                var orderedSelectedChangesets = SelectedChangesets.OrderBy(x => x.ChangesetId).ToList();
+
+                List<Changeset> orderedSelectedChangesets;
+                if (SingleChangeset != null && !SingleChangesetText.IsEmpty())
+                    orderedSelectedChangesets = new[] { SingleChangeset }.ToList();
+                else
+                    orderedSelectedChangesets = SelectedChangesets.OrderBy(x => x.ChangesetId).ToList();
 
                 _mergeOperation.MyCurrentAction += MergeOperation_MyCurrentAction;
 
@@ -255,7 +386,8 @@ namespace TeamMergeBase.Merge
             return SelectedChangesets != null
                 && SelectedChangesets.Any()
                 && Changesets.Count(x => x.ChangesetId >= SelectedChangesets.Min(y => y.ChangesetId) &&
-                                         x.ChangesetId <= SelectedChangesets.Max(y => y.ChangesetId)) == SelectedChangesets.Count;
+                                         x.ChangesetId <= SelectedChangesets.Max(y => y.ChangesetId)) == SelectedChangesets.Count
+                || SingleChangeset != null && !SingleChangesetText.IsEmpty();
         }
 
         private async Task FetchChangesetsAsync()
@@ -421,9 +553,7 @@ namespace TeamMergeBase.Merge
 
         private void SwitchTargetAndSourceBranches()
         {
-            var previousSourceBranch = SelectedSourceBranch;
-            SelectedSourceBranch = SelectedTargetBranch;
-            SelectedTargetBranch = previousSourceBranch;
+            (SelectedTargetBranch, SelectedSourceBranch) = (SelectedSourceBranch, SelectedTargetBranch);
         }
 
         private bool CanSwitchTargetAndSourceBranches() =>

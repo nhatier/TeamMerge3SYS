@@ -9,7 +9,7 @@
              xmlns:converters="clr-namespace:TeamMergeBase.Converters"
              xmlns:merge="clr-namespace:TeamMergeBase.Merge"
              mc:Ignorable="d"
-             d:DataContext="{d:DesignInstance merge:TeamMergeViewModel2019}"
+             d:DataContext="{d:DesignInstance}"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <ResourceDictionary>
@@ -71,14 +71,14 @@
             <Button Command="{Binding TeamMergeCommandsViewModel.OpenSettingsCommand}" Content="{x:Static resources:Resources.Settings}" HorizontalAlignment="Right"/>
         </DockPanel>
 
-        <TextBlock Text="{x:Static resources:Resources.ProjectName}" />
+        <TextBlock Text="Projet" />
         <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.ProjectNames}"
                   SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedProjectName, UpdateSourceTrigger=PropertyChanged}"
                   Margin="0 0 0 10"/>
 
-        <TextBlock Text="{x:Static resources:Resources.SourceBranch}" />
-        <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.SourcesBranches}"
-                  SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedSourceBranch, UpdateSourceTrigger=PropertyChanged}"
+        <TextBlock Text="Source (chemin devops $/...)" />
+        <TextBox Text="{Binding TeamMergeCommandsViewModel.SelectedSourceBranch, UpdateSourceTrigger=PropertyChanged}"
+                 Padding="3"
                   Margin="0 0 0 10"/>
 
         <Button Command="{Binding TeamMergeCommandsViewModel.SwitchTargetAndSourceBranchesCommand}"
@@ -86,7 +86,7 @@
                 Visibility="{Binding TeamMergeCommandsViewModel.ShouldShowButtonSwitchingSourceTargetBranch, Converter={StaticResource BooleanToVisibilityConverter}}"
                 Margin="0 0 0 10" FontWeight="SemiBold"/>
 
-        <TextBlock Text="{x:Static resources:Resources.TargetBranch}" />
+        <TextBlock Text="Destination" />
         <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.TargetBranches}"
                   SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedTargetBranch, UpdateSourceTrigger=PropertyChanged}"
                   Margin="0 0 0 20"/>
@@ -106,12 +106,29 @@
                     <i:InvokeCommandAction Command="{Binding ViewChangesetDetailsCommand}" />
                 </i:EventTrigger>
             </i:Interaction.Triggers>
-
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0 2" Width="{Binding ActualWidth, ElementName=parentElementName}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Width="40" x:Name="ChangesetId" Text="{Binding Path=ChangesetId, Mode=OneWay}"/>
+                            <TextBlock Width="120" x:Name="CreationDate" Text="{Binding Path=CreationDate, Mode=OneWay, StringFormat='yyyy-mm-dd hh:mm:ss'}"/>
+                            <TextBlock x:Name="Owner" Text="{Binding Path=Owner, Mode=OneWay}"/>
+                        </StackPanel>
+                        <TextBlock Margin="40 0 0 0" TextWrapping="Wrap" x:Name="Comment" Text="{Binding Path=Comment, Mode=OneWay}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
         </ui:ChangesetListBox>
+        
+        <TextBlock Text="Changeset unique :" />
+        <TextBox Text="{Binding TeamMergeCommandsViewModel.SingleChangesetId, UpdateSourceTrigger=PropertyChanged}"
+                 Padding="3" Margin="0 0 0 10" IsEnabled="{Binding TeamMergeCommandsViewModel.SingleChangesetEnabled}" PreviewTextInput="NumericTextInput" />
 
-        <TextBlock Margin="10" FontSize="18" FontWeight="Heavy" Visibility="{Binding TeamMergeCommandsViewModel.MyCurrentAction, Converter={StaticResource NullToInvisibleConverter}}" 
+        <TextBlock Text="{Binding TeamMergeCommandsViewModel.SingleChangesetText}"/>
+
+        <TextBlock Margin="10" FontSize="18" FontWeight="Heavy"
                    TextAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="WrapWithOverflow"
-                   Text="{Binding TeamMergeCommandsViewModel.MyCurrentAction}" />
+                   Text="{Binding TeamMergeCommandsViewModel.MyCurrentAction}"/>
 
         <Grid>
             <Grid.ColumnDefinitions>
@@ -120,7 +137,7 @@
                 <ColumnDefinition />
             </Grid.ColumnDefinitions>
 
-            <Button Command="{Binding TeamMergeCommandsViewModel.FetchChangesetsCommand}"
+            <Button Name="FetchChangesets" Command="{Binding TeamMergeCommandsViewModel.FetchChangesetsCommand}"
                   Content="{x:Static resources:Resources.FetchChangesets}"
                   Grid.Column="0"/>
 

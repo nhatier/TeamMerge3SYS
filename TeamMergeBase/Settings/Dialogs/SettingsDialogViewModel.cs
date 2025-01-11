@@ -1,4 +1,6 @@
-﻿using Logic.Services;
+﻿using Domain.Entities;
+using Logic.Helpers;
+using Logic.Services;
 using Shared.Utils;
 using System;
 using System.Collections.Generic;
@@ -8,15 +10,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Animation;
-using Domain.Entities;
 using TeamMergeBase.Base;
 using TeamMergeBase.Commands;
 using TeamMergeBase.Helpers;
+using TeamMergeBase.Settings.Enums;
+using TeamMergeBase.Settings.Models;
 using Branch = TeamMergeBase.Settings.Enums.Branch;
 using RelayCommand = TeamMergeBase.Commands.RelayCommand;
-using TeamMergeBase.Settings.Models;
-using TeamMergeBase.Settings.Enums;
 
 namespace TeamMergeBase.Settings.Dialogs
 {
@@ -140,6 +140,12 @@ namespace TeamMergeBase.Settings.Dialogs
                 WorkItemTypesToExclude = new ObservableCollection<string>(_configManager.GetValue<ObservableCollection<string>>(ConfigKeys.WORK_ITEM_TYPES_TO_EXCLUDE) ?? Enumerable.Empty<string>()),
                 ShouldShowButtonSwitchingSourceTargetBranch = _configManager.GetValue<bool>(ConfigKeys.SHOULD_SHOW_BUTTON_SWITCHING_SOURCE_TARGET_BRANCH)
             };
+
+            if (Model.CheckInComment == CheckInComment.Standard3SYS && Model.CommentFormat.IsEmpty())
+            {
+                Model.CommentFormat = Resources.Changeset3SYSFormat;
+                Model.CommentLineFormat = Resources.Changeset3SYSLineFormat;
+            }
 
             IsDirty = false;
             Model.PropertyChanged += Model_PropertyChanged;

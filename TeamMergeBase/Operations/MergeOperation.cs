@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using Logic.Helpers;
 using Logic.Services;
 using Shared.Utils;
 using System;
@@ -139,6 +140,12 @@ namespace TeamMergeBase.Operations
             var checkInCommentChoice = _configManager.GetValue<CheckInComment>(ConfigKeys.CHECK_IN_COMMENT_OPTION);
             var commentFormat = _configManager.GetValue<string>(ConfigKeys.COMMENT_FORMAT);
             var commentLineFormat = _configManager.GetValue<string>(ConfigKeys.COMMENT_LINE_FORMAT);
+
+            if (checkInCommentChoice == CheckInComment.Standard3SYS && commentFormat.IsEmpty())
+            {
+                commentFormat = Resources.Changeset3SYSFormat;
+                commentLineFormat = Resources.Changeset3SYSLineFormat;
+            }
 
             return CommentOutputHelper.GetCheckInComment(checkInCommentChoice, commentFormat, commentLineFormat, mergeModel.SourceBranch, mergeModel.TargetBranch, workItemIds, mergeModel.OrderedChangesets, ShouldShowLatestVersionComment(mergeModel.IsLatestVersion));
         }

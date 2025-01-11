@@ -50,6 +50,14 @@ namespace TeamMergeBase.Helpers
                         comment = Resources.LatestVersion;
                     }
                 }
+                else if (checkInCommentChoice == CheckInComment.Standard3SYS)
+                {
+                    if (!isLatestVersion)
+                    {
+                        comment = string.Format(CultureInfo.CurrentCulture, commentFormat, sourceBranch.GetBranchName(), targetBranch.GetBranchName());
+                        comment += CreateLineChangesetDetail3SYS(commentLineFormat ?? string.Empty, changesets);
+                    }
+                }
                 else if (checkInCommentChoice == CheckInComment.MergeDirectionChangesetsDetails)
                 {
                     comment = string.Format(CultureInfo.CurrentCulture, commentFormat, sourceBranch.GetBranchName(), targetBranch.GetBranchName());
@@ -88,6 +96,10 @@ namespace TeamMergeBase.Helpers
         }
 
         private static string CreateLineChangesetDetailComment(string commentFormat, IEnumerable<Changeset> changesets)
+        {
+            return string.Join(Environment.NewLine, changesets.Select(x => string.Format(CultureInfo.CurrentCulture, commentFormat, x.ChangesetId, x.CreationDate, x.Owner, x.Comment)));
+        }
+        private static string CreateLineChangesetDetail3SYS(string commentFormat, IEnumerable<Changeset> changesets)
         {
             return string.Join(Environment.NewLine, changesets.Select(x => string.Format(CultureInfo.CurrentCulture, commentFormat, x.ChangesetId, x.CreationDate, x.Owner, x.Comment)));
         }
