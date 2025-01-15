@@ -8,5 +8,9 @@ namespace TeamMergeBase.Helpers
         {
             return branchPath.Split('/').Last();
         }
+        public static bool IsEmpty(this string s)
+        {
+            return string.IsNullOrEmpty(s);
+        }
     }
 }

@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Domain.Entities
 {
     public class DefaultMergeSettings
@@ -5,11 +8,11 @@ namespace Domain.Entities
         public string Solution { get; set; }
         public string ProjectName { get; set; }
         public string SourceBranch { get; set; }
-        public string TargetBranch { get; set; }
+        public IEnumerable<string> TargetBranches { get; set; }
 
         public bool IsValidSettings()
         {
-            return !string.IsNullOrWhiteSpace(ProjectName) && !string.IsNullOrWhiteSpace(SourceBranch) && !string.IsNullOrWhiteSpace(TargetBranch);
+            return !string.IsNullOrWhiteSpace(ProjectName) && !string.IsNullOrWhiteSpace(SourceBranch) && (TargetBranches != null) && (TargetBranches.Any());
         }
     }
 }

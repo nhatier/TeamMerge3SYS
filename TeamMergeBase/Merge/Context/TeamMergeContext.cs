@@ -1,4 +1,5 @@
 ﻿using Domain.Entities;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
 namespace TeamMergeBase.Merge.Context
@@ -7,7 +8,7 @@ namespace TeamMergeBase.Merge.Context
     {
         public string SourceBranch { get; set; }
 
-        public string TargetBranch { get; set; }
+        public IEnumerable<string> TargetBranches { get; set; }
 
         public string SelectedProjectName { get; set; }
 

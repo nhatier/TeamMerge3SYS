@@ -57,42 +57,66 @@
     </UserControl.Resources>
 
     <StackPanel IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBooleanConverter}}"
-                Margin="5">
-        <TextBlock Text="{x:Static resources:Resources.Workspace}" />
-        <DockPanel  Margin="0 0 0 20">
-            <ComboBox SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedWorkspace}"
-                      Margin="0 0 0 0"
-                      MinWidth="150"
-                      DisplayMemberPath="Name"
-                      ItemsSource="{Binding TeamMergeCommandsViewModel.Workspaces}">
-
-            </ComboBox>
-
-            <Button Command="{Binding TeamMergeCommandsViewModel.OpenSettingsCommand}" Content="{x:Static resources:Resources.Settings}" HorizontalAlignment="Right"/>
-        </DockPanel>
+                Margin="0 15 10 5">
+        <TextBlock Text="Espace de travail" Visibility="Collapsed" />
+        <ComboBox SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedWorkspace}"
+                Visibility="Collapsed" Margin="0 0 0 0" MinWidth="150" DisplayMemberPath="Name"
+              ItemsSource="{Binding TeamMergeCommandsViewModel.Workspaces}">
+        </ComboBox>
 
         <TextBlock Text="Projet" />
-        <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.ProjectNames}"
-                  SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedProjectName, UpdateSourceTrigger=PropertyChanged}"
-                  Margin="0 0 0 10"/>
+        <DockPanel>
+            <StackPanel Orientation="Vertical">
+                <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.ProjectNames}"
+                SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedProjectName, UpdateSourceTrigger=PropertyChanged}"
+                Margin="0 0 0 10" />
+            </StackPanel>
 
-        <TextBlock Text="Source (chemin devops $/...)" />
-        <TextBox Text="{Binding TeamMergeCommandsViewModel.SelectedSourceBranch, UpdateSourceTrigger=PropertyChanged}"
-                 Padding="3"
-                  Margin="0 0 0 10"/>
+            <StackPanel>
+                <Button Command="{Binding TeamMergeCommandsViewModel.OpenSettingsCommand}" 
+                        Content="{x:Static resources:Resources.Settings}" HorizontalAlignment="Right"/>
+            </StackPanel>
+        </DockPanel>
+        <TextBlock Text="Source" />
+        <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.SourcesBranches}"
+              SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedSourceBranch, UpdateSourceTrigger=PropertyChanged}"
+              Margin="0 0 0 10"/>
+
+        <TextBlock Text="Chemin dans la branche (optionnel)" />
+        <TextBox Text="{Binding TeamMergeCommandsViewModel.SubPath, UpdateSourceTrigger=PropertyChanged}"
+                 Padding="3" Margin="0 0 0 10"/>
 
         <Button Command="{Binding TeamMergeCommandsViewModel.SwitchTargetAndSourceBranchesCommand}"
                 Content="{x:Static resources:Resources.SwitchTargetAndSourceBranches}"
-                Visibility="{Binding TeamMergeCommandsViewModel.ShouldShowButtonSwitchingSourceTargetBranch, Converter={StaticResource BooleanToVisibilityConverter}}"
+                Visibility="Collapsed"
                 Margin="0 0 0 10" FontWeight="SemiBold"/>
 
-        <TextBlock Text="Destination" />
-        <ComboBox ItemsSource="{Binding TeamMergeCommandsViewModel.TargetBranches}"
-                  SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedTargetBranch, UpdateSourceTrigger=PropertyChanged}"
-                  Margin="0 0 0 20"/>
+        <TextBlock Text="Destinations" />
+        <ListBox
+             Margin="0 0 0 20" MaxHeight="100" x:Name="DestinationBranchesSelector"
+             ItemsSource="{Binding TeamMergeCommandsViewModel.TargetBranches}"                  
+             SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedTargetBranch, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+             SelectionMode="Multiple">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <i:InvokeCommandAction Command="{Binding TeamMergeCommandsViewModel.DestinationBranchesChangeCommand}" CommandParameter="{Binding ElementName=DestinationBranchesSelector}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox IsChecked="{Binding RelativeSource=
+                           {RelativeSource Mode=FindAncestor,
+                            AncestorType={x:Type ListBoxItem}},
+                           Path=IsSelected}" Margin="0 3" Background="Transparent">
+                        <TextBlock Text="{Binding}" Margin="6 0"></TextBlock>
+                    </CheckBox>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+
+        </ListBox>
 
         <ui:ChangesetListBox
-             Margin="0 0 0 20" MaxHeight="400"
+             Margin="0 0 0 20" MaxHeight="200"
              ItemsSource="{Binding TeamMergeCommandsViewModel.Changesets}"
              SelectedItem="{Binding TeamMergeCommandsViewModel.SelectedChangeset}"
              Style="{StaticResource ChangesetListStyle}"
@@ -119,7 +143,7 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ui:ChangesetListBox>
-        
+
         <TextBlock Text="Changeset unique :" />
         <TextBox Text="{Binding TeamMergeCommandsViewModel.SingleChangesetId, UpdateSourceTrigger=PropertyChanged}"
                  Padding="3" Margin="0 0 0 10" IsEnabled="{Binding TeamMergeCommandsViewModel.SingleChangesetEnabled}" PreviewTextInput="NumericTextInput" />
@@ -130,6 +154,7 @@
                    TextAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="WrapWithOverflow"
                    Text="{Binding TeamMergeCommandsViewModel.MyCurrentAction}"/>
 
+
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
@@ -138,12 +163,12 @@
             </Grid.ColumnDefinitions>
 
             <Button Name="FetchChangesets" Command="{Binding TeamMergeCommandsViewModel.FetchChangesetsCommand}"
-                  Content="{x:Static resources:Resources.FetchChangesets}"
+                  Content="Liste des changesets"
                   Grid.Column="0"/>
 
 
             <Button Command="{Binding TeamMergeCommandsViewModel.MergeCommand}"
-                  Content="{x:Static resources:Resources.Merge}"
+                  Content="Fusionner"
                   FontWeight="Bold"
                   Grid.Column="2"/>
         </Grid>

@@ -43,15 +43,19 @@ namespace TeamMergeBase.Merge
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             SwitchTargetAndSourceBranchesCommand = new RelayCommand(SwitchTargetAndSourceBranches, CanSwitchTargetAndSourceBranches);
 
+            DestinationBranchesChangeCommand = new RelayCommand<System.Windows.Controls.ListBox>(DestinationBranchesChangeEvent);
+
             SourcesBranches = new ObservableCollection<string>();
             TargetBranches = new ObservableCollection<string>();
             ProjectNames = new ObservableCollection<string>();
+            SelectedTargetBranches = new ObservableCollection<string>();
 
             Changesets = new ObservableCollection<Changeset>();
             SelectedChangesets = new ObservableCollection<Changeset>();
         }
 
         public IRelayCommand ViewChangesetDetailsCommand { get; }
+        public IRelayCommand DestinationBranchesChangeCommand { get; }        
         public IRelayCommand MergeCommand { get; }
         public IRelayCommand FetchChangesetsCommand { get; }
         public IRelayCommand SelectWorkspaceCommand { get; }
@@ -78,9 +82,20 @@ namespace TeamMergeBase.Merge
                 SourcesBranches.Clear();
                 TargetBranches.Clear();
                 SourcesBranches.AddRange(_currentBranches.Select(x => x.Name));
+                SingleChangeset = null;                
 
                 SelectedSourceBranch = $"$/{_selectedProjectName}/Principale";
             }
+        }
+
+
+        private void DestinationBranchesChangeEvent(System.Windows.Controls.ListBox modelListBox)
+        {
+            var tempModelInfo = new ObservableCollection<string>();
+            foreach (string a in modelListBox.SelectedItems)
+                tempModelInfo.Add(a);
+
+            SelectedTargetBranches = tempModelInfo;
         }
 
         private string _selectedSourceBranch;
@@ -91,6 +106,12 @@ namespace TeamMergeBase.Merge
             set
             {
                 _selectedSourceBranch = value;
+                Changesets.Clear();
+                SelectedChangeset = null;
+                SingleChangeset = null;
+                
+                RaisePropertyChanged(nameof(SelectedChangeset));
+                RaisePropertyChanged(nameof(SelectedChangesets));
                 RaisePropertyChanged(nameof(SelectedSourceBranch));
                 RaisePropertyChanged(nameof(SingleChangesetEnabled));
 
@@ -100,17 +121,20 @@ namespace TeamMergeBase.Merge
             }
         }
 
-        String LongestPrefix(String str1, String str2)
+        private string _sourcePath;
+
+        public string SubPath
         {
-            var sb = new System.Text.StringBuilder();
-            for (int i = 0; i < Math.Min(str1.Length, str2.Length) - 1; ++i)
-            {
-                if (char.ToLower(str1[i]) == char.ToLower(str2[i]))
-                    sb.Append(str1[i]);
-                else
-                    break;
+            get { return _sourcePath; }
+            set {                 
+
+                var subPath = value.Replace("\\", "/");
+                if (!subPath.IsEmpty() && !subPath.StartsWith("/"))
+                    subPath = "/" + subPath;
+                _sourcePath = subPath;
+
+                RaisePropertyChanged(nameof(SubPath));
             }
-            return sb.ToString();
         }
 
         public void InitializeTargetBranches()
@@ -163,6 +187,28 @@ namespace TeamMergeBase.Merge
             }
         }
 
+        
+        private ObservableCollection<string> _selectedTargetBranches;
+
+        public ObservableCollection<string> SelectedTargetBranches
+        {
+            get { return _selectedTargetBranches; }         
+            set
+            {
+                _selectedTargetBranches = value;
+                RaisePropertyChanged(nameof(SelectedTargetBranches));
+                if (_selectedTargetBranches != null)
+                {
+                    _selectedTargetBranches.CollectionChanged += SelectedTargetBranches_CollectionChanged;
+                }
+            }
+        }
+
+        private void SelectedTargetBranches_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            MergeCommand.RaiseCanExecuteChanged();
+        }
+
         private Changeset _selectedChangeset;
 
         public Changeset SelectedChangeset
@@ -177,28 +223,35 @@ namespace TeamMergeBase.Merge
 
         CancellationTokenSource c = new CancellationTokenSource();
 
+        private bool _reentrant = false;
         private int? _singleChangesetId;
         public int? SingleChangesetId
         {
             get { return _singleChangesetId; }
             set
             {
+                if (_reentrant) return;
+                _reentrant = true;
                 _singleChangesetId = value;
                 RaisePropertyChanged(nameof(SingleChangesetId));
+
                 if (_singleChangesetId == null ^ SingleChangeset == null ||
                     _singleChangesetId != null && _singleChangesetId.Value != SingleChangeset.ChangesetId)
                 {
-                    SingleChangeset = null;
-
-                    c.Cancel();
-                    if (value.HasValue)
-                    {
-                        c = new CancellationTokenSource();
+                   
+                        SingleChangeset = null;
+                        c.Cancel();
+                        SelectedChangesets.Clear();
+                        if (value.HasValue)
+                        {
+                            c = new CancellationTokenSource();
 #pragma warning disable CS4014
-                        FetchSingleChangeset(value.Value, c);
+                            FetchSingleChangeset(value.Value, c);
 #pragma warning restore CS4014
-                    }
+                        }
+                    
                 }
+                _reentrant = false;
             }
         }
 
@@ -207,8 +260,22 @@ namespace TeamMergeBase.Merge
             await Task.Delay(250, c.Token);
             if (!c.IsCancellationRequested)
             {
-                var changeset = await _teamService.GetChangesetAsync(changesetId);
-                SingleChangeset = changeset;
+                var lChangeSet = Changesets.Where((ch) => ch.ChangesetId == _singleChangesetId).FirstOrDefault();
+                if (lChangeSet != null)
+                {
+                    SingleChangeset = lChangeSet;
+                    SelectedChangeset = lChangeSet;
+                    SelectedChangesets.Clear();
+                    SelectedChangesets.Add(lChangeSet);
+                    RaisePropertyChanged(nameof(SelectedChangeset));
+                    RaisePropertyChanged(nameof(SelectedChangesets));
+                    RaisePropertyChanged(nameof(SingleChangesetEnabled));
+                }
+                else
+                {
+                    var changeset = await _teamService.GetChangesetAsync(changesetId);
+                    SingleChangeset = changeset;
+                }
             }
         }
 
@@ -218,11 +285,20 @@ namespace TeamMergeBase.Merge
             get { return _singleChangeset; }
             set
             {
-                _singleChangeset = value;
+                _singleChangeset = value;                                     
                 RaisePropertyChanged(nameof(SingleChangeset));
                 RaisePropertyChanged(nameof(SingleChangesetText));
                 RaisePropertyChanged(nameof(SingleChangesetEnabled));
                 MergeCommand.RaiseCanExecuteChanged();
+
+                if (value == null && _singleChangesetId.HasValue)
+                {
+                    SingleChangesetId = null;
+                }
+                else if (value != null && (_singleChangesetId == null || _singleChangesetId != value.ChangesetId))
+                {
+                    SingleChangesetId = value.ChangesetId;
+                }
             }
         }
 
@@ -239,7 +315,7 @@ namespace TeamMergeBase.Merge
         {
             get
             {
-                return CanFetchChangesets() && SelectedChangesets.Count <= 1;
+                return CanFetchChangesets() && SelectedChangesets.Distinct().Count() <= 1;
             }
             set
             {
@@ -267,13 +343,15 @@ namespace TeamMergeBase.Merge
         private void SelectedChangesets_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
             var first = SelectedChangesets.FirstOrDefault();
+
             if (first != null)
             {
-                if (SelectedChangesets.Skip(1).Any())
-                    SingleChangeset = null;
-                else
-                    SingleChangeset = first;
+                Changeset _single = null;
+                if (!SelectedChangesets.Skip(1).Any())
+                    _single = first;
 
+                if (_single != SingleChangeset)
+                    SingleChangeset = _single;
             }
 
             MergeCommand.RaiseCanExecuteChanged();
@@ -345,7 +423,8 @@ namespace TeamMergeBase.Merge
                     WorkspaceModel = SelectedWorkspace,
                     OrderedChangesets = orderedSelectedChangesets,
                     SourceBranch = SelectedSourceBranch,
-                    TargetBranch = SelectedTargetBranch,
+                    TargetBranches = SelectedTargetBranches,
+                    SubPath = SubPath,
                     IsLatestVersion = SelectedChangesets.Count == Changesets.Count
                 });
 
@@ -363,7 +442,7 @@ namespace TeamMergeBase.Merge
             {
                 ProjectName = _selectedProjectName,
                 SourceBranch = _selectedSourceBranch,
-                TargetBranch = _selectedTargetBranch
+                TargetBranches = _selectedTargetBranches
             });
         }
 
@@ -371,7 +450,7 @@ namespace TeamMergeBase.Merge
         {
             _configManager.AddValue(ConfigKeys.SELECTED_PROJECT_NAME, SelectedProjectName);
             _configManager.AddValue(ConfigKeys.SOURCE_BRANCH, SelectedSourceBranch);
-            _configManager.AddValue(ConfigKeys.TARGET_BRANCH, SelectedTargetBranch);
+            _configManager.AddValue(ConfigKeys.TARGET_BRANCH, SelectedTargetBranches);
 
             _configManager.SaveDictionary();
         }
@@ -396,7 +475,9 @@ namespace TeamMergeBase.Merge
             {
                 Changesets.Clear();
 
-                var changesets = await _teamService.GetChangesetsAsync(SelectedSourceBranch, SelectedTargetBranch);
+                var results = await Task.WhenAll(SelectedTargetBranches.Select((b) => _teamService.GetChangesetsAsync(SelectedSourceBranch + SubPath, b + SubPath)));
+                
+                var changesets = results.SelectMany((c) => c).Distinct().OrderByDescending((c) => c.ChangesetId);
 
                 Changesets = new ObservableCollection<Changeset>(changesets);
 
@@ -468,7 +549,7 @@ namespace TeamMergeBase.Merge
                 if (_currentBranches.Any(x => x.Name == defaultMergeSettings.SourceBranch))
                 {
                     SelectedSourceBranch = defaultMergeSettings.SourceBranch;
-                    SelectedTargetBranch = defaultMergeSettings.TargetBranch;
+                    SelectedTargetBranches = new ObservableCollection<string>(defaultMergeSettings.TargetBranches);
                 }
             }
             else
@@ -490,7 +571,7 @@ namespace TeamMergeBase.Merge
                 if (_currentBranches.Any(x => x.Name == savedSourceBranch))
                 {
                     SelectedSourceBranch = savedSourceBranch;
-                    SelectedTargetBranch = _configManager.GetValue<string>(ConfigKeys.TARGET_BRANCH);
+                    SelectedTargetBranches = _configManager.GetValue<ObservableCollection<string>>(ConfigKeys.TARGET_BRANCH);                    
                 }
             }
         }
@@ -528,7 +609,7 @@ namespace TeamMergeBase.Merge
             if (_currentBranches.Any(x => x.Name == context.SourceBranch))
             {
                 SelectedSourceBranch = context.SourceBranch;
-                SelectedTargetBranch = context.TargetBranch;
+                SelectedTargetBranches = new ObservableCollection<string>(context.TargetBranches);
             }
         }
 
@@ -539,7 +620,7 @@ namespace TeamMergeBase.Merge
                 SelectedProjectName = SelectedProjectName,
                 Changesets = Changesets,
                 SourceBranch = SelectedSourceBranch,
-                TargetBranch = SelectedTargetBranch
+                TargetBranches = SelectedTargetBranches
             };
         }
 

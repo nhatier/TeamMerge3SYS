@@ -62,7 +62,7 @@ namespace Logic.Services
                     if (currentSolutionSetting != null)
                     {
                         currentSolutionSetting.SourceBranch = defaultMergeSettings.SourceBranch;
-                        currentSolutionSetting.TargetBranch = defaultMergeSettings.TargetBranch;
+                        currentSolutionSetting.TargetBranches = defaultMergeSettings.TargetBranches;
                         currentSolutionSetting.ProjectName = defaultMergeSettings.ProjectName;
                     }
                     else

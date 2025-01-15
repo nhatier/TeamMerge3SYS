@@ -74,6 +74,7 @@
     <Reference Include="Microsoft.TeamFoundation.Controls">
       <HintPath>..\Lib\VS2022\Microsoft.TeamFoundation.Controls.dll</HintPath>
     </Reference>
+    <Reference Include="PresentationFramework" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Drawing" />
