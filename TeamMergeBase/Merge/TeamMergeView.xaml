@@ -135,7 +135,7 @@
                     <StackPanel Margin="0 2" Width="{Binding ActualWidth, ElementName=parentElementName}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Width="40" x:Name="ChangesetId" Text="{Binding Path=ChangesetId, Mode=OneWay}"/>
-                            <TextBlock Width="120" x:Name="CreationDate" Text="{Binding Path=CreationDate, Mode=OneWay, StringFormat='yyyy-mm-dd hh:mm:ss'}"/>
+                            <TextBlock Width="120" x:Name="CreationDate" Text="{Binding Path=CreationDate, Mode=OneWay, StringFormat='yyyy-MM-dd hh:mm:ss'}"/>
                             <TextBlock x:Name="Owner" Text="{Binding Path=Owner, Mode=OneWay}"/>
                         </StackPanel>
                         <TextBlock Margin="40 0 0 0" TextWrapping="Wrap" x:Name="Comment" Text="{Binding Path=Comment, Mode=OneWay}"/>
